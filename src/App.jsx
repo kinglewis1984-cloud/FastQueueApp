@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { INITIAL_LOCATIONS, WAIT_LEVELS, timeAgo } from "./data";
@@ -42,12 +42,15 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState(null);
+  const latestRequestId = useRef(0);
 
   const loadNearby = useCallback(async (lat, lng, radiusMeters) => {
+    const requestId = ++latestRequestId.current;
     setLoading(true);
     setError(null);
     try {
       const results = await fetchBurgerKingLocations(lat, lng, radiusMeters);
+      if (requestId !== latestRequestId.current) return; // superseded by a newer request
       if (results.length === 0) {
         setError("No Burger King locations found nearby.");
         return;
@@ -56,9 +59,10 @@ function App() {
       setLocations(merged);
       setSelectedId(merged[0].id);
     } catch {
+      if (requestId !== latestRequestId.current) return;
       setError("Couldn't reach OpenStreetMap — showing sample data instead.");
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestId.current) setLoading(false);
     }
   }, []);
 

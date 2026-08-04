@@ -45,6 +45,19 @@ function toLocation(element) {
   };
 }
 
+// OSM sometimes maps the same restaurant as both a node and a way (e.g. a
+// POI point plus the building outline) — collapse near-duplicates so they
+// don't render as two markers for one location.
+function dedupeByCoords(locations) {
+  const seen = new Set();
+  return locations.filter((loc) => {
+    const key = `${loc.lat.toFixed(4)},${loc.lng.toFixed(4)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function queryEndpoint(url, query) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -68,7 +81,8 @@ export async function fetchBurgerKingLocations(lat, lng, radiusMeters = 8000) {
   for (const url of OVERPASS_ENDPOINTS) {
     try {
       const data = await queryEndpoint(url, query);
-      return data.elements.map(toLocation).filter(Boolean).slice(0, MAX_RESULTS);
+      const locations = data.elements.map(toLocation).filter(Boolean);
+      return dedupeByCoords(locations).slice(0, MAX_RESULTS);
     } catch (err) {
       lastError = err;
     }
