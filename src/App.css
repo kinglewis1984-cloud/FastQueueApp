@@ -38,8 +38,15 @@ body {
   color: rgba(255, 255, 255, 0.85);
 }
 
-.locate-btn {
+.location-controls {
   margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.locate-btn {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: #fff;
@@ -48,9 +55,48 @@ body {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .locate-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.search-row {
+  display: flex;
+  flex: 1;
+  min-width: 160px;
+  gap: 6px;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.search-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.search-btn:disabled {
   opacity: 0.6;
   cursor: default;
 }

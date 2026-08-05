@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaf
 import "leaflet/dist/leaflet.css";
 import { INITIAL_LOCATIONS, WAIT_LEVELS, timeAgo } from "./data";
 import { fetchBurgerKingLocations } from "./overpass";
+import { geocodeAddress } from "./geocode";
 import {
   loadStoredReports,
   saveStoredReport,
@@ -49,8 +50,11 @@ function App() {
   });
   const [mapCenter, setMapCenter] = useState(null);
   const [userPos, setUserPos] = useState(null);
+  const [userPosLabel, setUserPosLabel] = useState(null);
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
   const [error, setError] = useState(null);
   const latestRequestId = useRef(0);
 
@@ -97,6 +101,7 @@ function App() {
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setUserPos({ lat: latitude, lng: longitude });
+        setUserPosLabel(null);
         setMapCenter([latitude, longitude]);
         setLocating(false);
         loadNearby(latitude, longitude, NEARBY_RADIUS_M);
@@ -107,6 +112,25 @@ function App() {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  }
+
+  async function searchLocation(e) {
+    e.preventDefault();
+    const query = locationQuery.trim();
+    if (!query) return;
+    setGeocoding(true);
+    setError(null);
+    try {
+      const { lat, lng, label } = await geocodeAddress(query);
+      setUserPos({ lat, lng });
+      setUserPosLabel(label);
+      setMapCenter([lat, lng]);
+      loadNearby(lat, lng, NEARBY_RADIUS_M);
+    } catch {
+      setError(`Couldn't find "${query}" — try a different search.`);
+    } finally {
+      setGeocoding(false);
+    }
   }
 
   function reportWait(id, level) {
@@ -142,9 +166,27 @@ function App() {
       <header className="app-header">
         <h1>Drive-Thru Watch</h1>
         <p className="subtitle">Live-ish Burger King wait times</p>
-        <button className="locate-btn" onClick={useMyLocation} disabled={locating}>
-          {locating ? "Locating…" : "📍 Use my location"}
-        </button>
+        <div className="location-controls">
+          <button className="locate-btn" onClick={useMyLocation} disabled={locating}>
+            {locating ? "Locating…" : "📍 Use my location"}
+          </button>
+          <form className="search-row" onSubmit={searchLocation}>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Enter a location…"
+              value={locationQuery}
+              onChange={(e) => setLocationQuery(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="search-btn"
+              disabled={geocoding || !locationQuery.trim()}
+            >
+              {geocoding ? "…" : "Go"}
+            </button>
+          </form>
+        </div>
       </header>
 
       {error && <div className="banner banner-error">{error}</div>}
@@ -168,7 +210,7 @@ function App() {
               radius={8}
               pathOptions={{ color: "#0a84ff", fillColor: "#0a84ff", fillOpacity: 0.9 }}
             >
-              <Popup>You are here</Popup>
+              <Popup>{userPosLabel ?? "You are here"}</Popup>
             </CircleMarker>
           )}
           {locations.map((loc) => (
