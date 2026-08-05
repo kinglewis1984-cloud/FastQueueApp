@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { INITIAL_LOCATIONS, WAIT_LEVELS, timeAgo } from "./data";
-import { fetchBurgerKingLocations } from "./overpass";
+import { fetchFastFoodLocations } from "./overpass";
 import { geocodeAddress } from "./geocode";
 import {
   loadStoredReports,
@@ -63,10 +63,10 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const results = await fetchBurgerKingLocations(lat, lng, radiusMeters);
+      const results = await fetchFastFoodLocations(lat, lng, radiusMeters);
       if (requestId !== latestRequestId.current) return; // superseded by a newer request
       if (results.length === 0) {
-        setError("No Burger King locations found nearby.");
+        setError("No fast food locations found nearby.");
         return;
       }
       saveLastGoodLocations(results);
@@ -165,7 +165,7 @@ function App() {
     <div className="phone">
       <header className="app-header">
         <h1>Drive-Thru Watch</h1>
-        <p className="subtitle">Live-ish Burger King wait times</p>
+        <p className="subtitle">Live-ish fast food wait times</p>
         <div className="location-controls">
           <button className="locate-btn" onClick={useMyLocation} disabled={locating}>
             {locating ? "Locating…" : "📍 Use my location"}

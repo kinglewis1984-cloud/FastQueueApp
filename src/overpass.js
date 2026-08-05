@@ -1,5 +1,5 @@
-// Fetches real Burger King locations from the OpenStreetMap Overpass API.
-// Free, no API key required. https://overpass-api.de
+// Fetches real fast food restaurant locations from the OpenStreetMap
+// Overpass API. Free, no API key required. https://overpass-api.de
 
 // The public Overpass network gets overloaded often enough that trying one
 // endpoint at a time isn't reliable. Race several full-planet mirrors in
@@ -11,12 +11,12 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.openstreetmap.fr/api/interpreter",
 ];
 const REQUEST_TIMEOUT_MS = 15000;
-const MAX_RESULTS = 40;
+const MAX_RESULTS = 60;
 
 function buildQuery(lat, lng, radiusMeters) {
   return `[out:json][timeout:25];
 (
-  nwr["name"~"Burger King",i](around:${radiusMeters},${lat},${lng});
+  nwr["amenity"="fast_food"](around:${radiusMeters},${lat},${lng});
 );
 out center tags;`;
 }
@@ -41,7 +41,7 @@ function toLocation(element) {
   const tags = element.tags || {};
   return {
     id: `osm-${element.type}-${element.id}`,
-    name: tags.name || "Burger King",
+    name: tags.name || tags.brand || "Fast Food Restaurant",
     address: formatAddress(tags),
     lat: coords.lat,
     lng: coords.lng,
@@ -78,7 +78,7 @@ async function queryEndpoint(url, query) {
   }
 }
 
-export async function fetchBurgerKingLocations(lat, lng, radiusMeters = 8000) {
+export async function fetchFastFoodLocations(lat, lng, radiusMeters = 8000) {
   const query = buildQuery(lat, lng, radiusMeters);
   let data;
   try {
