@@ -1,11 +1,14 @@
 // Fetches real Burger King locations from the OpenStreetMap Overpass API.
 // Free, no API key required. https://overpass-api.de
 
-// overpass-api.de is the canonical endpoint but frequently gets overloaded;
-// fall back to the Kumi Systems mirror if it doesn't respond in time.
+// The public Overpass network gets overloaded often enough that trying one
+// endpoint at a time isn't reliable. Race several full-planet mirrors in
+// parallel instead and use whichever answers first.
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://overpass.openstreetmap.fr/api/interpreter",
 ];
 const REQUEST_TIMEOUT_MS = 15000;
 const MAX_RESULTS = 40;
@@ -77,15 +80,12 @@ async function queryEndpoint(url, query) {
 
 export async function fetchBurgerKingLocations(lat, lng, radiusMeters = 8000) {
   const query = buildQuery(lat, lng, radiusMeters);
-  let lastError;
-  for (const url of OVERPASS_ENDPOINTS) {
-    try {
-      const data = await queryEndpoint(url, query);
-      const locations = data.elements.map(toLocation).filter(Boolean);
-      return dedupeByCoords(locations).slice(0, MAX_RESULTS);
-    } catch (err) {
-      lastError = err;
-    }
+  let data;
+  try {
+    data = await Promise.any(OVERPASS_ENDPOINTS.map((url) => queryEndpoint(url, query)));
+  } catch (aggregateError) {
+    throw aggregateError.errors?.[0] ?? aggregateError;
   }
-  throw lastError;
+  const locations = data.elements.map(toLocation).filter(Boolean);
+  return dedupeByCoords(locations).slice(0, MAX_RESULTS);
 }

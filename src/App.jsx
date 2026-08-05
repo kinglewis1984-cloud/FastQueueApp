@@ -3,7 +3,12 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaf
 import "leaflet/dist/leaflet.css";
 import { INITIAL_LOCATIONS, WAIT_LEVELS, timeAgo } from "./data";
 import { fetchBurgerKingLocations } from "./overpass";
-import { loadStoredReports, saveStoredReport } from "./storage";
+import {
+  loadStoredReports,
+  saveStoredReport,
+  loadLastGoodLocations,
+  saveLastGoodLocations,
+} from "./storage";
 import { distanceKm, formatDistance } from "./geo";
 import "./App.css";
 
@@ -33,10 +38,15 @@ function RecenterMap({ center, zoom }) {
 }
 
 function App() {
-  const [locations, setLocations] = useState(() =>
-    mergeWithStoredReports(INITIAL_LOCATIONS, loadStoredReports())
-  );
-  const [selectedId, setSelectedId] = useState(INITIAL_LOCATIONS[0].id);
+  const [locations, setLocations] = useState(() => {
+    const cached = loadLastGoodLocations();
+    const base = cached && cached.length > 0 ? cached : INITIAL_LOCATIONS;
+    return mergeWithStoredReports(base, loadStoredReports());
+  });
+  const [selectedId, setSelectedId] = useState(() => {
+    const cached = loadLastGoodLocations();
+    return cached && cached.length > 0 ? cached[0].id : INITIAL_LOCATIONS[0].id;
+  });
   const [mapCenter, setMapCenter] = useState(null);
   const [userPos, setUserPos] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,12 +65,19 @@ function App() {
         setError("No Burger King locations found nearby.");
         return;
       }
+      saveLastGoodLocations(results);
       const merged = mergeWithStoredReports(results, loadStoredReports());
       setLocations(merged);
       setSelectedId(merged[0].id);
     } catch {
       if (requestId !== latestRequestId.current) return;
-      setError("Couldn't reach OpenStreetMap — showing sample data instead.");
+      const cached = loadLastGoodLocations();
+      if (cached && cached.length > 0) {
+        setLocations(mergeWithStoredReports(cached, loadStoredReports()));
+        setError("Couldn't reach OpenStreetMap — showing the last locations we found.");
+      } else {
+        setError("Couldn't reach OpenStreetMap — showing sample data instead.");
+      }
     } finally {
       if (requestId === latestRequestId.current) setLoading(false);
     }
