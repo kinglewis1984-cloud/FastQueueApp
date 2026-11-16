@@ -164,6 +164,11 @@ function App() {
   return (
     <div className="phone">
       <header className="app-header">
+        <div className="cc-badge-row">
+          <a className="cc-badge" href="https://codecraftedstudios.co.uk" target="_blank" rel="noopener">
+            <span className="cc-built">Built by</span><span className="cc-dot"></span>CodeCrafted Studios
+          </a>
+        </div>
         <h1>Drive-Thru Watch</h1>
         <p className="subtitle">Live-ish fast food wait times</p>
         <div className="location-controls">
